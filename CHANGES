@@ -2,6 +2,10 @@ Newspost
 
 List of Changes
 
+1.11
+ - the number of digits in the part number field matches the number
+of digits in the total part count (thanks Mike Liang)
+
 1.1
  - no longer uses uulib
  - added a makefile for solaris

@@ -69,7 +69,7 @@
 #define ISLAST 2
 #define ISBOTH 3
 
-#define NVERSION "1.1"
+#define NVERSION "1.11"
 
 struct postsocket{
   time_t last_action_time;

@@ -1,4 +1,4 @@
-/* Newspost 1.1
+/* Newspost 1.11
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -31,6 +31,8 @@ int encode_and_post(struct postsocket *sock,const char *filename,
   struct headerinfo tmpheader; 
   struct stat fileinfo;
   int numchunks = 1;
+  char numchunkbuf[21]; /* big enough for 2^64 */
+  int numchunksize;
 
   stat(filename,&fileinfo);
 
@@ -40,6 +42,8 @@ int encode_and_post(struct postsocket *sock,const char *filename,
     else
       numchunks = ((fileinfo.st_size/(BPL * maxlines)) + 1);
   }
+  sprintf(numchunkbuf, "%d", numchunks);
+  numchunksize=strlen(numchunkbuf);
 
   tmpheader.from = calloc(1024,sizeof(char));
   tmpheader.newsgroups = calloc(1024,sizeof(char));
@@ -79,11 +83,11 @@ int encode_and_post(struct postsocket *sock,const char *filename,
     /* post text prefix if there is one */
     if( (zerofile != NULL)
         && (i == 1)){
-      sprintf(tmpheader.subject,"%s - %s (0/%d)\r\n",header->subject,strippedfilename,numchunks);
+      sprintf(tmpheader.subject,"%s - %s (%0*d/%d)\r\n",header->subject,strippedfilename,numchunksize,0,numchunks);
       postfile(&tmpheader,zerofile->filename,sock,NULL,NULL);
       printf("Posted %s as text\n",zerofile->filename);
     }
-    sprintf(tmpheader.subject,"%s - %s (%d/%d)\r\n",header->subject,strippedfilename,i,numchunks);
+    sprintf(tmpheader.subject,"%s - %s (%0*d/%d)\r\n",header->subject,strippedfilename,numchunksize,i,numchunks);
     /* post it! */
     if((i==1) && (i != numchunks)) postfile(&tmpheader,tmpfilename,sock,ISFIRST,strippedfilename);
     else if (i==1) postfile(&tmpheader,tmpfilename,sock,ISBOTH,strippedfilename);
