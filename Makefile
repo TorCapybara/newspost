@@ -1,4 +1,4 @@
-# Newspost 1.12
+# Newspost 1.13
 
 # makefile for newspost
 

@@ -27,14 +27,23 @@
 
 extern void pnsfv_head(FILE *sfvfile);
 extern void pfileinfo(struct filell *firstfile, FILE *sfvfile);
+#ifdef OSF
+extern void pcrc(char*, unsigned int, FILE *sfvfile);
+extern int  crc32(int, unsigned int*, unsigned int*);
+#else
 extern void pcrc(char*, unsigned long, FILE *sfvfile);
 extern int  crc32(int, unsigned long*, unsigned long*);
+#endif
 
 int newsfv(struct filell *firstfile, char *sfvname)
 {
   int           fd, rval = 0;
   char          *fn;
+#ifdef OSF
+  unsigned int len, val;
+#else
   unsigned long len, val;
+#endif
   struct filell *loc = firstfile;
   FILE *sfvfile = fopen(sfvname,"w");
   if(sfvfile == NULL){
@@ -49,6 +58,7 @@ int newsfv(struct filell *firstfile, char *sfvname)
     if ((fd = open(fn, O_RDONLY, 0)) < 0) {
       fprintf(stderr, "cksfv: %s: %s\n", fn, strerror(errno)); 
       rval = 1;
+      loc = loc->next;
       continue;
     }
     

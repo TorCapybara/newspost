@@ -68,11 +68,19 @@ void pfileinfo(struct filell *firstfile,FILE *sfvfile)
   }
 }
 
+#ifdef OSF
+void pcrc(char *fn, unsigned int val, FILE *sfvfile)
+#else
 void pcrc(char *fn, unsigned long val, FILE *sfvfile)
+#endif
 {
   char stripped[512];
   strippath(fn,stripped);
+#ifdef OSF
+  fprintf(sfvfile,"%s %.8X\r\n", stripped, val);
+#else
   fprintf(sfvfile,"%s %.8lX\r\n", stripped, val);
+#endif
 }
 
 /*

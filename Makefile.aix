@@ -4,7 +4,7 @@
 
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
-CFLAGS = -O -lnsl -lsocket
+CFLAGS = -O -DAIX
 CC = cc
 INSTALL = install
 SRC_FILES = uuencode.c newspost.c uu.c nntp.c socket.c utils.c cksfv/crc32.c cksfv/newsfv.c cksfv/print.c

@@ -177,7 +177,11 @@ FILE *popen ();
 # define setlocale(Category, Locale)
 #endif
 */
+#ifndef OSF
+#ifndef AIX
 #include <libintl.h>
+#endif
+#endif
 
 #define _(Str) gettext (Str)
 #ifdef gettext_noop

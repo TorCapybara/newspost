@@ -28,6 +28,9 @@
 #include <time.h>
 #include <errno.h>
 #include <signal.h>
+#ifdef OSF
+#include <sys/time.h>
+#endif
 #ifndef AIX
 #include <sys/timex.h>
 #endif
@@ -69,7 +72,7 @@
 #define ISLAST 2
 #define ISBOTH 3
 
-#define NVERSION "1.12"
+#define NVERSION "1.13"
 
 struct postsocket{
   time_t last_action_time;

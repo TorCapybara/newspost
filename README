@@ -1,17 +1,47 @@
-Newspost 1.12
+Newspost 1.13
 http://www.ccs.neu.edu/home/jfaulkne/newspost/
 
+INSTALLATION
+
 Just type 'make' then 'make install' to install to /usr/local/bin.
-Use 'make -f Makefile.solaris' if you are running that OS.
+If you want it installed to a different directory, type
+'make install BINDIR=/yourdir/bin/'.
+
+If you are not running Linux, then use 'make -f Makefile.YOUR_OS' 
+if you are running YOUR_OS.  I only have makefiles for linux, solaris
+and OSF (DEC Alpha) right now, but other UNIX variants should only 
+require small changes.
 
 If you want it installed to a different directory, type
 'make install BINDIR=/yourdir/bin/'.
 
-type "newspost -h" to see available options.
+USAGE
 
-Newspost has only been tested on linux and solaris, but a
-simple change in the Makefile will make it compile on other
-unixes.  Success/failure stories are welcome.
+type "newspost -h" to see available options and a couple examples.
+
+NOTE
+
+Newspost automatically appends the name of the binary attachment 
+you are posting and which part of that file your are posting.
+For example, if you use the commandline
+
+$ newpost -s "This is my favorite album" *.mp3
+
+The subject lines posted would be:
+
+This is my favorite album - Track01.mp3 (1/2)
+This is my favorite album - Track01.mp3 (2/2)
+This is my favorite album - Track02.mp3 (01/17)
+This is my favorite album - Track02.mp3 (02/17)
+This is my favorite album - Track02.mp3 (03/17)
+etc...
+
+Nothing is appended to the subject line when the -t option is used.
+
+FEEDBACK
+
+Feedback is welcome, but patches are more welcome, as well as
+makefiles for different OSes.  Please report any bugs you find.
 
 Jim Faulkner
 jfaulkne@ccs.neu.edu

@@ -1,5 +1,5 @@
 
-/* Newspost 1.12
+/* Newspost 1.13
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -413,7 +413,7 @@ void printhelp(struct headerinfo *header,
       && (strcmp(password,"")!=0)
       && (strcmp(password,"\n")!=0)
       && (strcmp(password,"\r\n")!=0)){
-    printf("  -p PASS - password, only used if authorization needed. Default Password: %s\n",password); 
+    printf("  -p PASS - password, only used if authorization needed. Default Password: ********\n",password); 
   }
   else printf("  -p PASS - password, only used if authorization needed.\n");
   printf("  -l LNES - maximum number of lines per post. Default Maximum Lines: %d\n",*maxlines);
