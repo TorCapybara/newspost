@@ -1,4 +1,4 @@
-/* Newspost 1.11
+/* Newspost 1.12
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -51,11 +51,11 @@ int encode_and_post(struct postsocket *sock,const char *filename,
   tmpheader.organization = calloc(1024,sizeof(char));
   tmpheader.useragent = calloc(1024,sizeof(char));
 
-  sprintf(tmpheader.from,header->from);
-  sprintf(tmpheader.newsgroups,header->newsgroups);
-  sprintf(tmpheader.subject,header->subject);
-  sprintf(tmpheader.organization,header->organization);
-  sprintf(tmpheader.useragent,header->useragent);
+  sprintf(tmpheader.from,"%s",header->from);
+  sprintf(tmpheader.newsgroups,"%s",header->newsgroups);
+  sprintf(tmpheader.subject,"%s",header->subject);
+  sprintf(tmpheader.organization,"%s",header->organization);
+  sprintf(tmpheader.useragent,"%s",header->useragent);
 
   strippath(filename,strippedfilename);
 

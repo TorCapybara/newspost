@@ -1,5 +1,5 @@
 
-/* Newspost 1.11
+/* Newspost 1.12
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -191,6 +191,7 @@ int main(int argc, char **argv){
 
   if(istext == TRUE){
     printf("Posting %s as text.\n",firstfile->filename);
+    sprintf(header.subject,"%s\r\n",header.subject);
     postfile(&header,firstfile->filename,&sock,NULL,NULL);
     printf("\n");
     printf("Posted %s\n",firstfile->filename);
@@ -220,7 +221,7 @@ int main(int argc, char **argv){
       newsfv(oldfirstfile,unstripped);
       encode_and_post(&sock,unstripped,&header,maxlines,zerofile);
       unlink(unstripped); 
-      printf("Posted %s\n",sfvname); 
+      printf("Posted %s\n",sfvname);
     }
 
     printf("\n");
@@ -347,6 +348,11 @@ struct filell *parseargs(int argc, char **argv,
       i++;
       strcpy(sfvname,argv[i]);
     }
+    else if((strcmp(argv[i],"-V")==0)){
+      /* display the version information and exit */
+      printf("newspost v%s\n",NVERSION);
+      exit(0);
+    }
     else{
       firstfile = addfile(argv[i], firstfile); 
     }
@@ -359,6 +365,7 @@ void printhelp(struct headerinfo *header,
                char *address, int *port,
                char *username, char *password,
                int *maxlines){
+  printf("newspost v%s\n",NVERSION);
   printf("Usage: newspost [OPTIONS [ARGUMENTS]] file1 file2 file3...\n");
   printf("Options:\n");
   printf("  -h, -?  - prints help.\n");
@@ -415,6 +422,7 @@ void printhelp(struct headerinfo *header,
   printf("  -d      - set current options as your default.\n");
   printf("  -t      - post as text (no uuencoding). only one file may be posted.\n");
   printf("  -r MGID - reply to MESSAGE_ID\n");
+  printf("  -V      - display version information and exit\n");
   printf("Examples:\n");
   printf("  $ newspost -f you@yourbox.yourdomain -o \"Your Organization\" -i news.yourisp.com -n alt.binaries.sounds.mp3 -d\n");
   printf("  $ newspost -s \"This is me singing\" -0 musicinfo.txt *.mp3 -v mysongs.sfv\n");
@@ -456,6 +464,7 @@ bool writedefaults(struct headerinfo *header,
   fprintf(myfile,"%s\r\n",password);
   fprintf(myfile,"%d\r\n",*maxlines);
   fclose(myfile);
+  chmod(defaultsfile,00600);
   return TRUE;
 }
 
@@ -474,7 +483,7 @@ void getdefaults(struct headerinfo *header,
   char *tmp1 = NULL;
   char *tmp2 = NULL;
 
-  sprintf(header->useragent,"User-Agent: newspost v%s\r\n",NVERSION);
+  sprintf(header->useragent,"User-Agent: newspost v%s http://www.ccs.neu.edu/home/jfaulkne/newspost/\r\n",NVERSION);
   sprintf(header->organization,"Organization: %s\r\n",ORGANIZATION);
   sprintf(header->subject,"");
   sprintf(header->from,"");

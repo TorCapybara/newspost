@@ -170,13 +170,13 @@ FILE *popen ();
 #  define __P(Args) ()
 # endif
 #endif
-
+/*
 #if HAVE_LOCALE_H
 # include <locale.h>
 #else
 # define setlocale(Category, Locale)
 #endif
-
+*/
 #include <libintl.h>
 
 #define _(Str) gettext (Str)
