@@ -34,13 +34,14 @@ typedef long long               n_int64; /* 8 byte signed integer */
 #include <unistd.h>
 
 typedef n_uint8                 boolean;
-
 #define FALSE 0
 #define TRUE 1
 
+#include "utils.h"
+
 /* remember to change VERSION and PAR_CLIENT for new version numbers */
-#define VERSION "2.0"
-#define PAR_CLIENT 0xFE020000
+#define VERSION "2.1"
+#define PAR_CLIENT 0xFE020100
 
 #define NEWSPOSTURL "http://newspost.unixcab.org/"
 #define NEWSPOSTNAME "Newspost"
@@ -56,57 +57,34 @@ typedef n_uint8                 boolean;
 #define POSTING_NOT_ALLOWED -5
 #define POSTING_FAILED -6
 
-typedef struct Newspost_SList {
-	void *data;
-	struct Newspost_SList *next;
-}
-SList;
-
 typedef struct {
-	char subject[STRING_BUFSIZE];
-	char newsgroup[STRING_BUFSIZE];
-	char from[STRING_BUFSIZE];
-	char organization[STRING_BUFSIZE];
-	char address[STRING_BUFSIZE];	/* server address and port */
+	Buff * subject;
+	Buff * newsgroup;
+	Buff * from;
+	Buff * organization;
+	Buff * address;	/* server address and port */
 	int port;
-	char user[STRING_BUFSIZE];
-	char password[STRING_BUFSIZE];
+	Buff * user;
+	Buff * password;
 	int lines;			/* lines per message */
-	char prefix[STRING_BUFSIZE];	/* filename of text prefix file */
+	Buff * prefix;	/* filename of text prefix file */
 	boolean yenc;
-	char sfv[STRING_BUFSIZE];	/* filename for generated sfv file */
-	char par[STRING_BUFSIZE];	/* prefix filename for par file(s) */
+	Buff * sfv;	/* filename for generated sfv file */
+	Buff * par;	/* prefix filename for par file(s) */
 	int parnum;			/* number of pars */
 	int filesperpar;		/* or number of files per par */
-	char reference[STRING_BUFSIZE]; /* message-id to reference */
+	Buff * reference; /* message-id to reference */
 	boolean filenumber;		/* include "File X of Y" in subject? */
-	char tmpdir[STRING_BUFSIZE];
+	Buff * tmpdir;
 	boolean noarchive;		/* include X-No-Archive: yes header? */
-	char followupto[STRING_BUFSIZE];
-	char replyto[STRING_BUFSIZE];
-	char name[STRING_BUFSIZE];
+	Buff * followupto;
+	Buff * replyto;
+	Buff * name;
 	boolean text;
 	SList * extra_headers;
 }
 newspost_data;
 
-typedef struct {
-	struct stat fileinfo;
-	char filename[STRING_BUFSIZE];
-	n_uint32 crc;
-	boolean *parts;
-}
-file_entry;
-
 int newspost(newspost_data *data, SList *file_list);
-
-SList *slist_next(SList *slist);
-SList *slist_append(SList *slist, void *data);
-SList *slist_prepend(SList *slist, void *data);
-SList *slist_remove(SList *slist, void *data);
-void slist_free(SList *slist);
-int slist_length(SList *slist);
-
-const char *basename(const char *path);
 
 #endif /* __NEWSPOST_H__ */

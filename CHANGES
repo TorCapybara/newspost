@@ -2,6 +2,15 @@ Newspost
 
 List of Changes
 
+2.1
+ - Removed all string length limitations
+ - Fixed zero-padding with -q option ("File 01 of 10" not "File 1 of 10")
+ - Referencing message IDs (-r option) now works
+ - Ability to "fake post" files: newspost can add specific files to 
+generated .SFV and .PAR files, and preserve ' \- File x of y: ' numbering, 
+but not actually post those files
+ - Compilation fixes for a variety of platforms
+
 2.0 - Major rewrite
  - Yencoding support
  - Support for automatic PAR file generation

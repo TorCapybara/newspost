@@ -32,8 +32,8 @@ boolean nntp_logon(newspost_data *data) {
 	if (nntp_get_response(buffer) < 0)
 		return FALSE;
 
-	if (data->user[0] != '\0') {
-		sprintf(buffer, "AUTHINFO USER %s", data->user);
+	if (data->user != NULL) {
+		sprintf(buffer, "AUTHINFO USER %s", data->user->data);
 		if (nntp_issue_command(buffer) < 0)
 			return FALSE;
 		if (nntp_get_response(buffer) < 0)
@@ -41,7 +41,7 @@ boolean nntp_logon(newspost_data *data) {
 		/* 381: More Authentication required */
 		if (strncmp(buffer,
 		    NNTP_MORE_AUTHENTICATION_REQUIRED, 3) == 0) {
-			sprintf(buffer, "AUTHINFO PASS %s", data->password);
+			sprintf(buffer, "AUTHINFO PASS %s", data->password->data);
 			if (nntp_issue_command(buffer) < 0)
 				return FALSE;
 			if (nntp_get_response(buffer) < 0)
@@ -82,6 +82,7 @@ int nntp_post(const char *subject, newspost_data *data,
 	const char *pi;
 	long i, chunksize;
 	SList * listptr;
+	Buff * buff = NULL;
 
 	nntp_issue_command("POST");
 
@@ -95,58 +96,34 @@ int nntp_post(const char *subject, newspost_data *data,
 		ui_nntp_unknown_response(response);
 		return POSTING_FAILED;
 	}
+	
+	buff = buff_add(buff, "From: %s\r\n", data->from->data);
+	buff = buff_add(buff, "Newsgroups: %s\r\n", data->newsgroup->data);
+	buff = buff_add(buff, "Subject: %s\r\n", subject);
+	buff = buff_add(buff, "User-Agent: %s\r\n", USER_AGENT);
 
-	socket_write("From: ", 6);
-	socket_write(data->from, (strlen(data->from)));
-	socket_write("\r\n", 2);
-
-	socket_write("Newsgroups: ", 12);
-	socket_write(data->newsgroup, (strlen(data->newsgroup)));
-	socket_write("\r\n", 2);
-
-	socket_write("Subject: ", 9);
-	socket_write(subject, (strlen(subject)));
-	socket_write("\r\n", 2);
-
-	socket_write("User-Agent: ", 12);
-	socket_write(USER_AGENT, (strlen(USER_AGENT)));
-	socket_write("\r\n", 2);
-
-	if (data->replyto[0] != '\0') {
-		socket_write("Reply-To: ", 10);
-		socket_write(data->replyto, (strlen(data->replyto)));
-		socket_write("\r\n", 2);
+	if (data->replyto != NULL) {
+		buff = buff_add(buff, "Reply-To: %s\r\n", data->replyto->data);
 	}
-
-	if (data->followupto[0] != '\0') {
-		socket_write("Followup-To: ", 13);
-		socket_write(data->followupto, (strlen(data->followupto)));
-		socket_write("\r\n", 2);
+	if (data->followupto != NULL) {
+		buff = buff_add(buff, "Followup-To: %s\r\n", data->followupto->data);
 	}
-
-	if (data->organization[0] != '\0') {
-		socket_write("Organization: ", 14);
-		socket_write(data->organization, (strlen(data->organization)));
-		socket_write("\r\n", 2);
+	if (data->organization != NULL) {
+		buff = buff_add(buff,"Organization: %s\r\n",data->organization->data);
 	}
-
-	if (data->reference[0] != '\0') {
-		socket_write("Reference: ", 11);
-		socket_write(data->reference, (strlen(data->reference)));
-		socket_write("\r\n", 2);
+	if (data->reference != NULL) {
+		buff = buff_add(buff, "References: %s\r\n", data->reference->data);
 	}
-
 	if (data->noarchive == TRUE)
-		socket_write("X-No-Archive: yes\r\n", 19);
-
+		buff = buff_add(buff, "X-No-Archive: yes\r\n");
 	listptr = data->extra_headers;
 	while (listptr != NULL) {
-		socket_write(listptr->data, (strlen(listptr->data)));
-		socket_write("\r\n", 2);
+		buff = buff_add(buff, "%s\r\n", listptr->data);
 		listptr = slist_next(listptr);
 	}
+	buff = buff_add(buff,"\r\n");
 
-	socket_write("\r\n", 2);
+	socket_write(buff->data, buff->length);
 
 	if (!no_ui_updates)
 		ui_chunk_posted(0, 0);
@@ -182,6 +159,7 @@ int nntp_post(const char *subject, newspost_data *data,
 		ui_nntp_unknown_response(response);
 		return POSTING_FAILED;
 	}
+	buff_free(buff);
 	return NORMAL;
 }
 

@@ -7,7 +7,7 @@
 
 extern time_t post_delay;
 extern boolean verbosity;
-extern char * tmpdir_ptr;
+extern Buff * tmpdir_ptr;
 
 void ui_tmpdir_create_failed(const char *dirname, int error);
 
@@ -42,6 +42,7 @@ void ui_posting_prefix_done();
 void ui_posting_prefix_failed();
 void ui_posting_file_start(newspost_data *data, file_entry *filedata, 
 			   int number_of_parts, long bytes_in_first_part);
+void ui_posting_file_done();
 
 int ui_chunk_posted(long chunksize, long bytes_written);
 
@@ -53,8 +54,6 @@ void ui_posting_part_done(file_entry *filedata, int part_number,
 
 void ui_nntp_posting_failed(const char *response);
 void ui_nntp_posting_retry();
-
-void ui_posting_file_done(const char *filename, int number_of_parts);
 
 void ui_post_done();
 

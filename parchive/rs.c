@@ -106,7 +106,7 @@ recreate(xfile_t *in, xfile_t *out)
 	u8 *mt, *imt, *muls;
 	u8 buf[0x10000], *work;
 	i64 s, size;
-	i64 perc;
+	/* i64 perc; */
 
 	ginit();
 
@@ -311,7 +311,7 @@ recreate(xfile_t *in, xfile_t *out)
 	/* Restore all the files at once */
 	NEW(work, sizeof(buf) * M);
 
-	perc = 0;
+	/* perc = 0; */
 	/* fprintf(stderr, "0%%"); fflush(stderr); */
 	/* Process all files */
 	for (s = 0; s < size; ) {

@@ -702,9 +702,9 @@ restore_files(pfile_t *files, pfile_t *volumes)
 			continue;
 		}
 
-                fileinfo = malloc(sizeof(file_entry));
-		fileinfo->parts = NULL;
-                strncpy(fileinfo->filename,stuni(v->filename),STRING_BUFSIZE);
+                fileinfo = file_entry_alloc();
+                fileinfo->filename = 
+			buff_create(fileinfo->filename,"%s",stuni(v->filename));
 		stat(stuni(v->filename),&fileinfo->fileinfo);
                 parlist = slist_prepend(parlist,fileinfo);
 		file_close(v->f);

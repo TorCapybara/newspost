@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Author: Jim Faulkner <newspost@unixcab.org>
+ *         and William McBrine <wmcbrine@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +18,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * 
  */
-
-/* Modified by William McBrine <wmcbrine@users.sf.net> */
 
 #include "../base/encode.h"
 #include "options.h"
@@ -165,7 +164,6 @@ static const char *rc_comment[number_of_defaults] = {
 	"any extra headers"
 };
 
-static void setfield(char *field, const char *src);
 static void version_info();
 static boolean parse_file_parts(newspost_data *data,
 			file_entry *this_file_entry, const char *arg, int i);
@@ -183,12 +181,12 @@ SList *parse_input_files(int argc, char **argv, int optind,
 	SList *file_list = NULL;
 	SList *tmplist, *tmplist2;
 	file_entry *data1, *data2;
+	Buff *tmpbuff = NULL;
 	int i;
 	boolean thisfilepart = FALSE;
 
 	while (optind < argc) {
-		this_file_entry = (file_entry *) malloc(sizeof(file_entry));
-		this_file_entry->parts = NULL;
+		this_file_entry = file_entry_alloc();
 
 		i = strlen(argv[optind]);
 		thisfilepart = FALSE;
@@ -196,16 +194,24 @@ SList *parse_input_files(int argc, char **argv, int optind,
 			i--;
 
 		if (i < 2)
-			setfield(this_file_entry->filename, argv[optind]);
+			this_file_entry->filename = 
+				buff_create(this_file_entry->filename, "%s",
+					    argv[optind]);
 		else {
-			strncpy(this_file_entry->filename, argv[optind], i);
-			this_file_entry->filename[i] = '\0';
+			/* cut of the colon and partnumbers */
+			tmpbuff = buff_create(tmpbuff, "%s", argv[optind]);
+			tmpbuff->data[i] = '\0';
+			
+			this_file_entry->filename = 
+				buff_create(this_file_entry->filename, 
+					     "%s", tmpbuff->data);
 			thisfilepart = TRUE;
+			tmpbuff = buff_free(tmpbuff);
 		}
 
-		if ( (stat(this_file_entry->filename,
+		if ( (stat(this_file_entry->filename->data,
 			&this_file_entry->fileinfo) == 0) &&
-		   (testopen = fopen(this_file_entry->filename, "rb")) ) {
+		   (testopen = fopen(this_file_entry->filename->data, "rb")) ) {
 
 			fclose(testopen);
 
@@ -214,12 +220,13 @@ SList *parse_input_files(int argc, char **argv, int optind,
 				fprintf(stderr,
 					"\nWARNING: %s is a directory"
 					" - SKIPPING",
-					this_file_entry->filename);
+					this_file_entry->filename->data);
 				if (data->text == TRUE) {
 					printf("\nNothing to post!\n");
 					exit(EXIT_NO_FILES);
 				}
 				/* only free() if we skip it */
+				buff_free(this_file_entry->filename);
 				free(this_file_entry);
 			}
 			else {
@@ -243,13 +250,13 @@ SList *parse_input_files(int argc, char **argv, int optind,
 		else {
 			fprintf(stderr,
 				"\nWARNING: %s %s - SKIPPING",
-				strerror(errno), this_file_entry->filename);
+				strerror(errno), this_file_entry->filename->data);
 			if (data->text == TRUE) {
 				printf("\nNothing to post!\n");
 				exit(EXIT_NO_FILES);
 			}
 			/* only free() if we skip it */
-			free(this_file_entry);
+			file_entry_free(this_file_entry);
 		}
 		optind++;
 	}
@@ -261,14 +268,14 @@ SList *parse_input_files(int argc, char **argv, int optind,
 		while (tmplist2 != NULL) {
 			data1 = (file_entry *) tmplist->data;
 			data2 = (file_entry *) tmplist2->data;
-			if (strcmp(data1->filename, data2->filename) == 0) {
+			if (strcmp(data1->filename->data, data2->filename->data) == 0) {
 				fprintf(stderr,
 					"\nWARNING: duplicate filename"
 					" %s - IGNORING",
-					data2->filename);
+					data2->filename->data);
 				tmplist2 = slist_next(tmplist2);
 				/* only free() if we skip it */
-				free(data2);
+				file_entry_free(data2);
 				file_list = slist_remove(file_list, data2);
 			}
 			else
@@ -285,25 +292,24 @@ void parse_environment(newspost_data *data) {
 
 	envopt = getenv("NNTPSERVER");
 	if (envopt != NULL)
-		setfield(data->address, envopt);
+		data->address = buff_create(data->address, "%s", envopt);
 
 	envopt = getenv("USER");
 	if (envopt != NULL) {
 		envopt2 = getenv("HOSTNAME");
 		if (envopt2 != NULL) {
-			setfield(data->from, envopt);
-			strcat(data->from, "@");
-			strcat(data->from, envopt2);
+			data->from = buff_create(data->from, "%s", envopt);
+			data->from = buff_add(data->from, "@%s", envopt2);
 		}
 	}
 
 	envopt = getenv("TMPDIR");
 	if (envopt != NULL)
-		setfield(data->tmpdir, envopt);
+		data->tmpdir = buff_add(data->tmpdir, "%s", envopt);
 	else {
 		envopt = getenv("TMP");
 		if (envopt != NULL)
-			setfield(data->tmpdir, envopt);
+			data->tmpdir = buff_add(data->tmpdir, "%s", envopt);
 	}
 
 	envopt = getenv("EDITOR");
@@ -313,55 +319,58 @@ void parse_environment(newspost_data *data) {
 
 void parse_defaults(newspost_data *data) {
 	const char *envopt;
-	char filename[STRING_BUFSIZE];
-	char line[STRING_BUFSIZE];
 	char *setting;
-	char *header;
 	FILE *file;
+	Buff *header = NULL;
 	int i, linenum = 0;
+	Buff *filename = NULL;
+	Buff *line = NULL;
 
 	envopt = getenv("HOME");
 	if (envopt != NULL) {
-		sprintf(filename, "%s/.newspostrc", envopt);
-		file = fopen(filename, "r");
+		filename = buff_create(filename, "%s/.newspostrc", envopt);
+		file = fopen(filename->data, "r");
 		if (file != NULL) {
-			while (fgets(line, STRING_BUFSIZE, file) != NULL) {
+			while (!feof(file)) {
+				line = getline(line, file);
 				linenum++;
+				if(line == NULL) continue;
 
 				/* ignore comment lines */
-				for (i = 0; line[i] != ' ' ; i++);
-				if (line[i] == '#')
+				for (i = 0; line->data[i] == ' ' ; i++){}
+				if (line->data[i] == '#')
 					continue;
 
-				setting = strchr(line, '=');
+				setting = strchr(line->data, '=');
+
 				if (setting != NULL) {
 				    *setting++ = '\0';
 
 				    for (i = 0; i < number_of_defaults; i++)
-					if (strcmp(line, rc_keyword[i]) == 0)
+					if (strcmp(line->data, rc_keyword[i]) == 0)
 					    break;
 
 				    switch (i) {
 				    case newsgroup:
-					setfield(data->newsgroup, setting);
+					data->newsgroup = buff_create(data->newsgroup, "%s", setting);
 					break;
 				    case from:
-					setfield(data->from, setting);
+					data->from = buff_create(data->from, "%s", setting);
 					break;
 				    case organization:
-					setfield(data->organization, setting);
+					data->organization = buff_create(data->organization, "%s", setting);
 					break;
 				    case address:
-					setfield(data->address, setting);
+					data->address = buff_create(data->address, "%s", setting);
 					break;
 				    case port:
 					data->port = atoi(setting);
 					break;
 				    case user:
-					setfield(data->user, setting);
+					data->user = buff_create(data->user, "%s", setting);
 					break;
 				    case password:
-					setfield(data->password, setting);
+					data->password = buff_create(data->password, "%s", setting);
 					break;
 				    case lines:
 					data->lines = atoi(setting);
@@ -379,20 +388,20 @@ void parse_defaults(newspost_data *data) {
 					data->filesperpar = atoi(setting);
 					break;
 				    case followupto:
-					setfield(data->followupto, setting);
+					data->followupto = buff_create(data->followupto, "%s", setting);
 					break;
 				    case replyto:
-					setfield(data->replyto, setting);
+					data->replyto = buff_create(data->replyto, "%s", setting);
 					break;
 				    case tmpdir:
-					setfield(data->tmpdir, setting);
+					data->tmpdir = buff_create(data->tmpdir, "%s", setting);
 					break;
 				    case name:
-					setfield(data->name, setting);
+					data->name = buff_create(data->name, "%s", setting);
 					break;
 				    case extraheader:
-					header = malloc(STRING_BUFSIZE);
-					setfield(header, setting);
+					header = NULL;
+					header = buff_create(header, "%s", setting);
 					data->extra_headers =
 					   slist_append(data->extra_headers,
 							header);
@@ -401,7 +410,7 @@ void parse_defaults(newspost_data *data) {
 					fprintf(stderr,
 					    "\nWARNING: invalid option in"
 					    " %s: line %i",
-					    filename, linenum);
+					    filename->data, linenum);
 				    }
 				}
 			}
@@ -411,42 +420,45 @@ void parse_defaults(newspost_data *data) {
 			if (errno != ENOENT)
 				fprintf(stderr,
 					"\nWARNING: %s %s", strerror(errno),
-					filename);
+					filename->data);
 
 			/* try to read the old .newspost */
-			sprintf(filename, "%s/.newspost", envopt);
-			file = fopen(filename, "r");
+			filename = buff_create(filename, "%s/.newspost", envopt);
+			file = fopen(filename->data, "r");
 			if (file != NULL) {
-				for (linenum = 1; linenum < 9; linenum++) {
-					fgets(line, STRING_BUFSIZE, file);
+				linenum = 0;
+				while (linenum < 8) {
+					linenum++;
+					line = getline(line, file);
+					if(line == NULL) continue;
 
 					switch (linenum) {
 					case 1:
-						setfield(data->from, line);
+						data->from = buff_create(data->from, "%s", line->data);
 						break;
 					case 2:
-						setfield(data->organization,
-							 line);
+						data->organization = buff_create(data->organization,
+							 "%s", line->data);
 						break;
 					case 3:
-						setfield(data->newsgroup,
-							 line);
+						data->newsgroup = buff_create(data->newsgroup,
+							 "%s", line->data);
 						break;
 					case 4:
-						setfield(data->address, line);
+						data->address = buff_create(data->address, "%s", line->data);
 						break;
 					case 5:
-						data->port = atoi(line);
+						data->port = atoi(line->data);
 						break;
 					case 6:
-						setfield(data->user, line);
+						data->user = buff_create(data->user, "%s", line->data);
 						break;
 					case 7:
-						setfield(data->password,
-							 line);
+						data->password = buff_create(data->password,
+							 "%s", line->data);
 						break;
 					case 8:
-						data->lines = atoi(line);
+						data->lines = atoi(line->data);
 					}
 				}
 			}
@@ -456,37 +468,41 @@ void parse_defaults(newspost_data *data) {
 		fprintf(stderr,
 			"\nWARNING: Unable to determine your home directory"
 			"\nPlease set your HOME environment variable");
+	buff_free(filename);
+	buff_free(line);
 }
 
 boolean set_defaults(newspost_data *data) {
 	const char *envopt;
-	char filename[STRING_BUFSIZE];
 	FILE *file;
 	SList *tmplist;
+	Buff *filename = NULL;
+	Buff * header = NULL;
 
 	envopt = getenv("HOME");
 	if (envopt != NULL) {
-		sprintf(filename, "%s/.newspostrc", envopt);
-		file = fopen(filename, "w");
+		filename = buff_create(filename, "%s/.newspostrc", envopt);
+		file = fopen(filename->data, "w");
 		if (file != NULL) {
 			fprintf(file, "# %s\n%s=%s\n\n# %s\n%s=%s\n\n"
 				"# %s\n%s=%s\n\n# %s\n%s=%s\n\n",
 				rc_comment[newsgroup],
-				rc_keyword[newsgroup], data->newsgroup,
+				rc_keyword[newsgroup], (data->newsgroup != NULL) ? data->newsgroup->data : "",
 				rc_comment[from],
-				rc_keyword[from], data->from,
+				rc_keyword[from], (data->from != NULL) ? data->from->data : "",
 				rc_comment[organization],
-				rc_keyword[organization], data->organization,
+				rc_keyword[organization], 
+				(data->organization != NULL) ? data->organization->data : "",
 				rc_comment[address],
-				rc_keyword[address], data->address);
+				rc_keyword[address], (data->address != NULL) ? data->address->data : "");
 			fprintf(file, "# %s\n%s=%i\n\n",
 				rc_comment[port],
 				rc_keyword[port], data->port);
 			fprintf(file, "# %s\n%s=%s\n\n# %s\n%s=%s\n\n",
 				rc_comment[user],
-				rc_keyword[user], data->user,
+				rc_keyword[user], (data->user != NULL) ? data->user->data : "",
 				rc_comment[password],
-				rc_keyword[password], data->password);
+				rc_keyword[password], (data->password != NULL) ? data->password->data : "");
 			fprintf(file, "# %s\n%s=%i\n\n# %s\n%s=%i\n\n"
 				"# %s\n%s=%i\n\n# %s\n%s=%i\n\n",
 				rc_comment[lines],
@@ -500,34 +516,37 @@ boolean set_defaults(newspost_data *data) {
 			fprintf(file, "# %s\n%s=%s\n\n# %s\n%s=%s\n\n#"
 				" %s\n%s=%s\n\n",
 				rc_comment[followupto],
-				rc_keyword[followupto], data->followupto,
+				rc_keyword[followupto], (data->followupto != NULL) ? data->followupto->data : "",
 				rc_comment[replyto],
-				rc_keyword[replyto], data->replyto,
+				rc_keyword[replyto], (data->replyto != NULL) ? data->replyto->data : "",
 				rc_comment[tmpdir],
-				rc_keyword[tmpdir], data->tmpdir);
+				rc_keyword[tmpdir], (data->tmpdir != NULL) ? data->tmpdir->data : "");
 			fprintf(file, "# %s\n%s=%i\n\n",
 				rc_comment[filesperpar],
 				rc_keyword[filesperpar], data->filesperpar);
 			fprintf(file, "# %s\n%s=%s\n\n",
 				rc_comment[name],
-				rc_keyword[name], data->name);
+				rc_keyword[name], (data->name != NULL) ? data->name->data : "");
 			fprintf(file, "# %s\n",
 				rc_comment[extraheader]);
 
 			tmplist = data->extra_headers;
 			while (tmplist != NULL) {
+				header = (Buff *) tmplist->data;
 				fprintf(file, "%s=%s\n",
 					rc_keyword[extraheader],
-					(const char *) tmplist->data);
+					header->data);
 				tmplist = slist_next(tmplist);
 			}
 			fclose(file);
-			chmod(filename, S_IRUSR | S_IWUSR);
+			chmod(filename->data, S_IRUSR | S_IWUSR);
+			buff_free(filename);
 			return TRUE;
 		}
 		else {
 			fprintf(stderr,
-				"\nWARNING: %s %s", strerror(errno), filename);
+				"\nWARNING: %s %s", strerror(errno), filename->data);
+			buff_free(filename);
 			return FALSE;
 		}
 	}
@@ -542,9 +561,9 @@ boolean set_defaults(newspost_data *data) {
 /* returns index of first non-option argument */
 int parse_options(int argc, char **argv, newspost_data *data) {
 	int flag, i;
-	char *header;
-	boolean isflag = FALSE;
 	SList *listptr;
+	Buff *header = NULL;
+	boolean isflag = FALSE;
 
 	opterr = 0;
 
@@ -560,23 +579,23 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				break;
 
 			case subject_option:
-				setfield(data->subject, optarg);
+				data->subject = buff_create(data->subject, "%s", optarg);
 				break;
 
 			case newsgroup_option:
-				setfield(data->newsgroup, optarg);
+				data->newsgroup = buff_create(data->newsgroup, "%s", optarg);
 				break;
 
 			case from_option:
-				setfield(data->from, optarg);
+				data->from = buff_create(data->from, "%s", optarg);
 				break;
 
 			case organization_option:
-				setfield(data->organization, optarg);
+				data->organization = buff_create(data->organization, "%s", optarg);
 				break;
 
 			case address_option:
-				setfield(data->address, optarg);
+				data->address = buff_create(data->address, "%s", optarg);
 				break;
 
 			case port_option:
@@ -584,11 +603,11 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				break;
 
 			case user_option:
-				setfield(data->user, optarg);
+				data->user = buff_create(data->user, "%s", optarg);
 				break;
 
 			case password_option:
-				setfield(data->password, optarg);
+				data->password = buff_create(data->password, "%s", optarg);
 				break;
 
 			case lines_option:
@@ -597,7 +616,7 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 
 			case alternate_prefix_option:
 			case prefix_option:
-				setfield(data->prefix, optarg);
+				data->prefix = buff_create(data->prefix, "%s", optarg);
 				break;
 
 			case yenc_option:
@@ -605,11 +624,11 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				break;
 
 			case sfv_option:
-				setfield(data->sfv, optarg);
+				data->sfv = buff_create(data->sfv, "%s", optarg);
 				break;
 
 			case par_option:
-				setfield(data->par, optarg);
+				data->par = buff_create(data->par, "%s", optarg);
 				break;
 
 			case parnum_option:
@@ -622,7 +641,7 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				break;
 
 			case reference_option:
-				setfield(data->reference, optarg);
+				data->reference = buff_create(data->reference, "%s", optarg);
 				break;
 
 			case default_option:
@@ -651,15 +670,15 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				break;
 
 			case followupto_option:
-				setfield(data->followupto, optarg);
+				data->followupto = buff_create(data->followupto, "%s", optarg);
 				break;
 
 			case replyto_option:
-				setfield(data->replyto, optarg);
+				data->replyto = buff_create(data->replyto, "%s", optarg);
 				break;
 
 			case tmpdir_option:
-				setfield(data->tmpdir, optarg);
+				data->tmpdir = buff_create(data->tmpdir, "%s", optarg);
 				break;
 
 			case edit_prefix_option:
@@ -667,12 +686,12 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				break;
 
 			case name_option:
-				setfield(data->name, optarg);
+				data->name = buff_create(data->name, "%s", optarg);
 				break;
 
 			case extraheader_option:
-				header = malloc(STRING_BUFSIZE);
-				setfield(header,optarg);
+				header = NULL; /* buff_create free()s memory */
+				header = buff_create(header, "%s", optarg);
 				data->extra_headers =
 					slist_append(data->extra_headers,
 						     header);
@@ -686,27 +705,28 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				switch (optarg[0]) {
 
 				case user_option:
-					setfield(data->user, "");
+					data->user = buff_free(data->user);
 					break;
 
 				case password_option:
-					setfield(data->password, "");
+					data->password = buff_free(data->password);
 					break;
 
 				case name_option:
-					setfield(data->name, "");
+					data->name = buff_free(data->name);
 					break;
 
 				case organization_option:
-					setfield(data->organization, "");
+					data->organization = 
+						buff_free(data->organization);
 					break;
 
 				case followupto_option:
-					setfield(data->followupto, "");
+					data->followupto = buff_free(data->followupto);
 					break;
 
 				case replyto_option:
-					setfield(data->replyto, "");
+					data->replyto = buff_free(data->replyto);
 					break;
 
 				case noarchive_option:
@@ -716,7 +736,7 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				case extraheader_option:
 					listptr = data->extra_headers;
 					while (listptr != NULL) {
-						free(listptr->data);
+						buff_free(listptr->data);
 						listptr = slist_next(listptr);
 					}
 					slist_free(data->extra_headers);
@@ -734,7 +754,7 @@ int parse_options(int argc, char **argv, newspost_data *data) {
 				default:
 					fprintf(stderr,
 						"\nUnknown argument to"
-						" -%c option: %c",
+						" -%c option: %c\n",
 						disable_option,optarg[0]);
 					exit(EXIT_MISSING_ARGUMENT);
 				}
@@ -784,7 +804,7 @@ void check_options(newspost_data *data) {
 	FILE *testfile;
 	boolean goterror = FALSE;
 	
-	if (data->newsgroup[0] == '\0') {
+	if (data->newsgroup == NULL) {
 		fprintf(stderr,
 			"\nThe newsgroup to post to is required.\n");
 		goterror = TRUE;
@@ -793,7 +813,7 @@ void check_options(newspost_data *data) {
 		const char *pi;
 		int comma_count = 0;
 
-		for (pi = data->newsgroup; *pi != '\0'; pi++)
+		for (pi = data->newsgroup->data; *pi != '\0'; pi++)
 			if (*pi == ',')
 				comma_count++;
 
@@ -804,25 +824,25 @@ void check_options(newspost_data *data) {
 		}
 	}
 
-	if (data->from[0] == '\0') {
+	if (data->from == NULL) {
 		fprintf(stderr,
 			"\nYour e-mail address is required.\n");
 		goterror = TRUE;
 	}
-	if (data->address[0] == '\0') {
+	if (data->address == NULL) {
 		fprintf(stderr,
 			"\nThe news server's IP address or hostname"
 			" is required.\n");
 		goterror = TRUE;
 	}
 #ifndef ALLOW_NO_SUBJECT
-	if (data->subject[0] == '\0') {
+	if (data->subject == NULL) {
 		fprintf(stderr,
 			"\nThe subject line is required.\n");
 		goterror = TRUE;
 	}
 #else
-	if ((data->subject[0] == '\0') && (data->text == TRUE)) {
+	if ((data->subject == NULL) && (data->text == TRUE)) {
 		fprintf(stderr,
 			"\nThe subject line is always required"
 			" when posting text.\n");
@@ -855,13 +875,13 @@ void check_options(newspost_data *data) {
 				" 5000 to 10000 lines");
 		}
 	}
-	if (data->prefix[0] != '\0') {
-		testfile = fopen(data->prefix, "rb");
+	if (data->prefix != NULL) {
+		testfile = fopen(data->prefix->data, "rb");
 		if (testfile == NULL) {
 			fprintf(stderr,
 				"\nWARNING: %s %s -  NO PREFIX WILL BE POSTED",
-				strerror(errno), data->prefix);
-			data->prefix[0] = '\0';
+				strerror(errno), data->prefix->data);
+			data->prefix = buff_free(data->prefix);
 		}
 		else
 			fclose(testfile);
@@ -944,13 +964,13 @@ static boolean parse_file_parts(newspost_data *data,
 		if (thisint > numparts) {
 			fprintf(stderr,
 				"\nWARNING: %s only has %i parts",
-				this_file_entry->filename, numparts);
+				this_file_entry->filename->data, numparts);
 			while ((arg[i] != ',') && (arg[i] != '\0'))
 				i++;
 			i++;
 			continue;
 		}
-		else if (thisint < 1) {
+		else if (thisint < 0) {
 			fprintf(stderr,
 				"\nWARNING: invalid part number %i",
 				thisint);
@@ -984,7 +1004,7 @@ static boolean parse_file_parts(newspost_data *data,
 			if (thisint > numparts) {
 				fprintf(stderr,
 					"\nWARNING: %s only has %i parts",
-					this_file_entry->filename, numparts);
+					this_file_entry->filename->data, numparts);
 
 				thisint = numparts;
 			}
@@ -1025,39 +1045,40 @@ static boolean parse_file_parts(newspost_data *data,
 
 	/* not posting any parts */
 	if (postany == FALSE) {
-		free(this_file_entry->parts);
-		fprintf(stderr,
-			"\nWARNING: Not posting %s: valid"
-			" parts are 1 through %i",
-			this_file_entry->filename, numparts);
-		free(this_file_entry);
+		if(this_file_entry->parts[0] == FALSE){
+			fprintf(stderr,
+				"\nWARNING: Not posting %s: valid"
+				" parts are 1 through %i",
+				this_file_entry->filename->data, numparts);
+			file_entry_free(this_file_entry);
+		}
 	}
 
 	/* posting all parts despite colon */
 	if (postall == TRUE) {
-		free(this_file_entry->parts);
-		this_file_entry->parts = NULL;
-
-		fprintf(stderr,
-			"\nWARNING: Posting ALL of %s (parts 1 - %i):"
-			" is that what you meant to do?",
-			this_file_entry->filename, numparts);
+		if(this_file_entry->parts[0] == FALSE){
+			free(this_file_entry->parts);
+			this_file_entry->parts = NULL;
+			
+			fprintf(stderr,
+				"\nWARNING: Posting ALL of %s (parts 1 - %i):"
+				" is that what you meant to do?",
+				this_file_entry->filename->data, numparts);
+		}
 	}
 
-	return postany;
-}
+	if(this_file_entry->parts != NULL){
+		if(this_file_entry->parts[0] == TRUE){
+			printf("\nPretending to post %s",
+			       this_file_entry->filename->data);
+			fflush(stdout);
+		}
+	}
 
-/* Copy max of STRING_BUFSIZE chars from src to field, stopping at '\r',
-   '\n', or end of string, and terminate copied string. */
-static void setfield(char *field, const char *src) {
-	const char *loc;
-
-	loc = src;
-	while ((*loc != '\0') && (*loc != '\r') && (*loc != '\n') &&
-		((loc - src) < STRING_BUFSIZE))
-			*field++ = *loc++;
-
-	*field = '\0';
+	if(this_file_entry->parts != NULL){
+		return (postany | this_file_entry->parts[0]);
+	}
+	else return postany;
 }
 
 static void parse_delay_option(const char *option) {
@@ -1104,7 +1125,7 @@ static void parse_delay_option(const char *option) {
 
 static void version_info() {
 	printf("\n" NEWSPOSTNAME " version " VERSION
-		"\nCopyright (C) 2001 - 2002 Jim Faulkner"
+		"\nCopyright (C) 2001 - 2003 Jim Faulkner"
 		"\nThis is free software; see the source for"
 		" copying conditions.  There is NO"
 		"\nwarranty; not even for MERCHANTABILITY or"

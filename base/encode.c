@@ -69,7 +69,7 @@ long get_encoded_part (newspost_data *data, file_entry *file,
 	if (!( (partnumber > 0) && (partnumber <= total_parts) ))
 		return -1;
  
-	fp = fopen(file->filename, "rb");
+	fp = fopen(file->filename->data, "rb");
 	message_size = BYTES_PER_LINE * data->lines;
 
 	/* seek to the appropriate place if we're not already there */
@@ -93,13 +93,13 @@ long get_encoded_part (newspost_data *data, file_entry *file,
 			pi += sprintf(pi, "=ybegin line=%i size=%li "
 				"name=%s\r\n", YENC_LINE_LENGTH,
 				(long) file->fileinfo.st_size,
-				basename(file->filename));
+				n_basename(file->filename->data));
 		else {
 			pi += sprintf(pi, "=ybegin part=%i total=%i line=%i "
 				"size=%li name=%s\r\n", partnumber,
 				total_parts, YENC_LINE_LENGTH,
 				(long) file->fileinfo.st_size,
-				basename(file->filename));
+				n_basename(file->filename->data));
 
 			pi += sprintf(pi, "=ypart begin=%li end=%li\r\n",
 				pbegin, pend);
@@ -127,7 +127,7 @@ long get_encoded_part (newspost_data *data, file_entry *file,
 		/* make sure the appropriate text is put at the beginning */
 		if (partnumber == 1)
 			pi += sprintf(pi, "begin 644 %s\r\n",
-				basename(file->filename));
+				n_basename(file->filename->data));
 
 		pi += uu_encode(fp, pi, data->lines);
 		

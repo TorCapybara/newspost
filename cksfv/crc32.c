@@ -123,7 +123,7 @@ void calculate_crcs(SList *file_list)
 
 	while (file_list != NULL) {
 		data = (file_entry *) file_list->data;
-		fn = data->filename;
+		fn = data->filename->data;
 
 		if ((fd = open(fn, O_RDONLY, 0)) < 0)
 			ui_crc_error(fn, errno);

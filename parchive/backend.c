@@ -160,7 +160,8 @@ int
 find_file(pfile_t *file, int displ)
 {
 	hfile_t *p;
-	int cm, corr = 0;
+	int cm; 
+	/* int corr = 0; */
 
 	if (file->match) return 1;
 
@@ -175,8 +176,8 @@ find_file(pfile_t *file, int displ)
 						p_basename(p->filename));
 				perror(" ");
 			}
-*/
 			corr = 1;
+*/
 			continue;
 		}
 		if (CMP_MD5(p->hash, file->hash)) {
@@ -188,8 +189,8 @@ find_file(pfile_t *file, int displ)
 		if (displ)
 			fprintf(stderr, "      ERROR: %s: Failed md5 sum\n",
 					p_basename(p->filename));
-		*/
 		corr = 1;
+		*/
 	}
 	if (file->match) {
 	  /*

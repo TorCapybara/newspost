@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Author: Jim Faulkner <newspost@unixcab.org>
+ * Authors: Jim Faulkner <newspost@unixcab.org>
+ *          and William McBrine <wmcbrine@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,15 +19,13 @@
  * 
  */
 
-/* Modified by William McBrine <wmcbrine@users.sf.net> */
-
 #include "ui.h"
 #include "errors.h"
 #include "../base/encode.h"
 
 time_t post_delay = SLEEP_TIME;
 boolean verbosity = FALSE;
-char * tmpdir_ptr = NULL;
+Buff * tmpdir_ptr = NULL;
 
 static time_t part_start_time;
 
@@ -49,7 +48,7 @@ static const char *plural(long i);
 
 void ui_tmpdir_create_failed(const char *dirname, int error) {
 	fprintf(stderr,
-		"\nERROR: Error while creating temporary directory %s: \n%s",
+		"\nERROR: Error while creating temporary directory %s: %s\n",
 		dirname, strerror(error));
 }
 
@@ -59,7 +58,7 @@ void ui_sfv_gen_start() {
 }
 
 void ui_sfv_gen_done(const char *filename) {
-	printf(" %s", basename(filename));
+	printf(" %s", n_basename(filename));
 	fflush(stdout);
 }
 
@@ -96,7 +95,7 @@ void ui_par_gen_error() {
 }
 
 void ui_par_file_add_done(const char *filename) {
-	printf(" %s", basename(filename));
+	printf(" %s", n_basename(filename));
 	fflush(stdout);
 }
 
@@ -106,7 +105,7 @@ void ui_par_volume_create_start() {
 }
 
 void ui_par_volume_created(const char *filename) {
-	printf(" %s", basename(filename));
+	printf(" %s", n_basename(filename));
 	fflush(stdout);
 }
 
@@ -120,33 +119,35 @@ void ui_post_start(newspost_data *data, SList *file_list, SList *parfiles) {
 	int partsof = 0;
 	struct stat statbuf;
 	file_entry *fileinfo;
+	Buff * buff = NULL;
 
 	printf("\n");
-	printf("\nFrom: %s", data->from);
-	printf("\nNewsgroups: %s", data->newsgroup);
+	printf("\nFrom: %s", data->from->data);
+	printf("\nNewsgroups: %s", data->newsgroup->data);
 
-	if (data->replyto[0] != '\0')
-		printf("\nReply-To: %s", data->replyto);
-	if (data->followupto[0] != '\0')
-		printf("\nFollowup-To: %s", data->followupto);
-	if (data->organization[0] != '\0')
-		printf("\nOrganization: %s", data->organization);
-	if (data->reference[0] != '\0')
-		printf("\nReference: %s", data->reference);
+	if (data->replyto != NULL)
+		printf("\nReply-To: %s", data->replyto->data);
+	if (data->followupto != NULL)
+		printf("\nFollowup-To: %s", data->followupto->data);
+	if (data->organization != NULL)
+		printf("\nOrganization: %s", data->organization->data);
+	if (data->reference != NULL)
+		printf("\nReferences: %s", data->reference->data);
 	listptr = data->extra_headers;
 	while (listptr != NULL) {
-		printf("\n%s", (char *) listptr->data);
+		buff = (Buff *) listptr->data;
+		printf("\n%s", (char *) buff->data);
 		listptr = slist_next(listptr);
 	}
-	if (data->subject[0] != '\0')
-		printf("\nSubject: %s", data->subject);
+	if (data->subject != NULL)
+		printf("\nSubject: %s", data->subject->data);
 
 	printf("\n");
 
 	/* what are we posting? */
 
-	if ((data->prefix[0] != '\0') && (data->text == FALSE)) {
-		if (stat(data->prefix, &statbuf) == 0) {
+	if ((data->prefix != NULL) && (data->text == FALSE)) {
+		if (stat(data->prefix->data, &statbuf) == 0) {
 			printf("\n1 Text Prefix: %s",
 				byte_print(statbuf.st_size));
 			total_bytes += statbuf.st_size;
@@ -158,13 +159,17 @@ void ui_post_start(newspost_data *data, SList *file_list, SList *parfiles) {
 	while (listptr != NULL) {
 		fileinfo = (file_entry *) listptr->data;
 		if (fileinfo->parts != NULL) {
-			numparts = get_number_of_encoded_parts(data, fileinfo);
-			partsof++;
-
-			for (j = 1; j <= numparts; j++) {
-				if (fileinfo->parts[j] == TRUE)
-				    file_bytes +=
-				      (fileinfo->fileinfo.st_size / numparts);
+			if(fileinfo->parts[0] == FALSE){
+				numparts = get_number_of_encoded_parts(data, fileinfo);
+				partsof++;
+				for (j = 1; j <= numparts; j++) {
+					if (fileinfo->parts[j] == TRUE)
+						file_bytes +=
+							(fileinfo->fileinfo.st_size / numparts);
+				}
+			}
+			else{
+				i--;
 			}
 		}
 		else
@@ -185,8 +190,8 @@ void ui_post_start(newspost_data *data, SList *file_list, SList *parfiles) {
 		else
 			printf("%s", byte_print(file_bytes));
 		
-		if (data->sfv[0] != '\0') {
-			if (stat(data->sfv, &statbuf) == 0) {
+		if (data->sfv != NULL) {
+			if (stat(data->sfv->data, &statbuf) == 0) {
 				printf("\n1 SFV File: %s",
 				       byte_print(statbuf.st_size)); 
 				total_bytes += statbuf.st_size;
@@ -210,12 +215,12 @@ void ui_post_start(newspost_data *data, SList *file_list, SList *parfiles) {
 		
 		printf("\n%s %s total and posting to %s\n\n",
 		       (data->yenc == TRUE) ? "Yencoding" : "UUencoding",
-		       byte_print(total_bytes), data->address);
+		       byte_print(total_bytes), data->address->data);
 	}
 	else {
 		fileinfo = file_list->data;
 		printf("\nPosting %s as text to %s\n\n", 
-		       basename(fileinfo->filename), data->address);
+		       n_basename(fileinfo->filename->data), data->address->data);
 	}
 
 	/* pause before posting */
@@ -292,7 +297,7 @@ void ui_nntp_unknown_response(const char *response) {
 }
 
 void ui_posting_prefix_start(const char *filename) {
-	printf("\rPosting %s as text...", basename(filename));
+	printf("\rPosting %s as text...", n_basename(filename));
 	fflush(stdout);
 }
 
@@ -407,9 +412,10 @@ void ui_nntp_posting_retry() {
 
 void ui_posting_file_start(newspost_data *data, file_entry *filedata, 
 			   int number_of_parts, long bytes_in_first_part) {
+	Buff *tmpbuff = NULL;		   
 
 	printf("\r%s - %s (%i part%s",
-	       basename(filedata->filename),
+	       n_basename(filedata->filename->data),
 	       byte_print(filedata->fileinfo.st_size),
 	       number_of_parts,
 	       plural(number_of_parts));
@@ -442,47 +448,50 @@ void ui_posting_file_start(newspost_data *data, file_entry *filedata,
 
 		printf("%s encoded)", byte_print(estimate));
 
-		if (strlen(basename(filedata->filename)) < 20)
+		if (strlen(n_basename(filedata->filename->data)) < 20)
 			printf("          ");
 	}
 	else {
 		int i;
+		int p = 0;
 		boolean already = FALSE;
 		boolean inrange = FALSE;
 
-		printf(") - only posting parts");
-
 		for (i = 1; i <= number_of_parts; i++) {
 			if (filedata->parts[i] == TRUE) {
+				p++;
 				if (inrange == FALSE) {
 					if ((i > 1) &&
 					    (filedata->parts[i - 1] == TRUE))
 						inrange = TRUE;
 					else {
 						if (already == TRUE)
-							printf(",");
+							tmpbuff = buff_add(tmpbuff,",");
 						else
 							already = TRUE;
-						printf(" %i", i);
+						tmpbuff = buff_add(tmpbuff," %i", i);
 					}
 				}
 			}
 			else
 				if (inrange == TRUE) {
-					printf("-%i", i - 1);
+					tmpbuff = buff_add(tmpbuff,"-%i", (i - 1));
 					inrange = FALSE;
 				}
 		}
 		
 		if (inrange == TRUE)
-			printf("-%i", number_of_parts);
+			tmpbuff = buff_add(tmpbuff,"-%i", number_of_parts);
+			
+		printf(") - only posting part%s%s",plural(p),tmpbuff->data);
+		tmpbuff = buff_free(tmpbuff);
 	}
 
 	printf("\n");
 	fflush(stdout);
 }
 
-void ui_posting_file_done(const char *filename, int number_of_parts) {
+void ui_posting_file_done() {
 	files_posted++;
 }
 
@@ -524,15 +533,15 @@ void ui_too_many_failures() {
 }
 
 void ui_socket_error(int error){
-	char command[STRING_BUFSIZE];
+	Buff *command = NULL;
 
 	fprintf(stderr, "\nSocket error: %s",strerror(error));
 	if (tmpdir_ptr != NULL) {
 		fprintf(stderr, "\nDeleting temporary files... ");
-		if (rmdir(tmpdir_ptr) == -1) {
-			snprintf(command, STRING_BUFSIZE,
-				 "rm -rf %s", tmpdir_ptr);
-			system(command);
+		if (rmdir(tmpdir_ptr->data) == -1) {
+			command = buff_create(command,
+				 "rm -rf %s", tmpdir_ptr->data);
+			system(command->data);
 		}
 		fprintf(stderr, "done.");
 	}
@@ -541,16 +550,20 @@ void ui_socket_error(int error){
 	exit(EXIT_SOCKET_ERROR);
 }
 
+/**
+*** Private Routines
+**/
+
 static const char *byte_print(long numbytes) {
 	static char byte_string[64];
 
 	if (numbytes < 1024)
-		snprintf(byte_string, 64, "%li byte%s", numbytes,
+		sprintf(byte_string, "%li byte%s", numbytes,
 			 plural(numbytes));
 	else if (numbytes < (1024 * 1024))
-		snprintf(byte_string, 64, "%li KB", numbytes / 1024);
+		sprintf(byte_string, "%li KB", numbytes / 1024);
 	else
-		snprintf(byte_string, 64, "%.1f MB",
+		sprintf(byte_string, "%.1f MB",
 			(double) numbytes / (1024 * 1024));
 
 	return byte_string;

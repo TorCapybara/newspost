@@ -52,7 +52,7 @@ par_newspost_interface(newspost_data *data, SList *file_list) {
 	FILE *fp;
 	char *fn;
 	char md5[16];
-	char tmpstring[STRING_BUFSIZE];
+	Buff *tmpstring = NULL;
 	SList *parfiles;
 	SList *pi;
 	file_entry *fileinfo;
@@ -76,17 +76,22 @@ par_newspost_interface(newspost_data *data, SList *file_list) {
 	}
 
 	/* check if the name really ends in .par */
-	fn = data->par;
-	fn += (strlen(data->par) - 4);
-	if (strncasecmp(fn, ".par", 4) != 0) {
-		fn += 4;
-		sprintf(fn, ".par");
+	if(strlen(data->par->data) > 4){
+		fn = data->par->data;
+		fn += (strlen(data->par->data) - 4);
+		if (strncasecmp(fn, ".par", 4) != 0) {
+			data->par = buff_add(data->par,".par");
+		}
+	}
+	else{
+		data->par = buff_add(data->par,".par");
 	}
 
-	sprintf(tmpstring, "%s/%s", data->tmpdir, data->par);
-	strncpy(data->par, tmpstring, STRING_BUFSIZE);
+	tmpstring = buff_create(tmpstring, "%s/%s", data->tmpdir->data, data->par->data);
+	data->par = buff_create(data->par, "%s", tmpstring->data);
+	tmpstring = buff_free(tmpstring);
 
-	par = read_par_header(unist(data->par), 1, 0, 0);
+	par = read_par_header(unist(data->par->data), 1, 0, 0);
 	if (par == NULL) {
 		ui_par_gen_error();
 		return NULL;
@@ -100,8 +105,8 @@ par_newspost_interface(newspost_data *data, SList *file_list) {
 		filedata = (file_entry *) file_list->data;
 
 		par_add_file(par,
-			find_file_name(unist(filedata->filename), 1));
-		ui_par_file_add_done(filedata->filename);
+			find_file_name(unist(filedata->filename->data), 1));
+		ui_par_file_add_done(filedata->filename->data);
 		
 		file_list = slist_next(file_list);
 	}
@@ -117,7 +122,7 @@ par_newspost_interface(newspost_data *data, SList *file_list) {
 	pi = parfiles;
 	while (pi != NULL) {
 		filedata = (file_entry *) pi->data;
-		fp = fopen(filedata->filename, "rb+");
+		fp = fopen(filedata->filename->data, "rb+");
 		fseek(fp, 32, SEEK_SET);
 		md5_stream(fp, md5);
 		fseek(fp, 16, SEEK_SET);
@@ -130,13 +135,13 @@ par_newspost_interface(newspost_data *data, SList *file_list) {
 	free(par->comment);
 	free_par(par);
 
-	fileinfo = malloc(sizeof(file_entry));
-	fileinfo->parts = NULL;
-	strncpy(fileinfo->filename, data->par, STRING_BUFSIZE);
-	stat(fileinfo->filename, &fileinfo->fileinfo);
+	fileinfo = file_entry_alloc();
+	fileinfo->filename = buff_create(fileinfo->filename, 
+					 "%s", data->par->data);
+	stat(fileinfo->filename->data, &fileinfo->fileinfo);
 	parfiles = slist_prepend(parfiles, fileinfo);
-	chmod(fileinfo->filename, S_IRUSR | S_IWUSR);
-	ui_par_volume_created(fileinfo->filename);
+	chmod(fileinfo->filename->data, S_IRUSR | S_IWUSR);
+	ui_par_volume_created(fileinfo->filename->data);
 
 	return parfiles;
 }

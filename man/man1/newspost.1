@@ -1,4 +1,4 @@
-.TH "NEWSPOST" "1" "2.0" "Jim Faulkner" ""
+.TH "NEWSPOST" "1" "2.1" "Jim Faulkner" ""
 .SH "NAME"
 .LP 
 newspost \- a usenet binary autoposter
@@ -73,11 +73,11 @@ specified multiple times to add more header lines.  Please note:  do not
 use this feature unless you know exactly what you are doing.
 .TP 
 \fB\-q\fR
-This specifies that ' \- File 1 of 10: ' (depending on the file number and
+This specifies that ' \- File 01 of 10: ' (depending on the file number and
 number of files) will be added to the subject line after text specified by
 the \-s switch, and before the file information.  If the file being posted
 is a generated .SFV file, then the string is ' \- SFV File 1 of 1: '.  If
-the file is a generated .PAR file, the string is ' \- PAR File 1 of 10: '
+the file is a generated .PAR file, the string is ' \- PAR File 01 of 10: '
 (depending on the .PAR file number and the number of .PAR files).  See
 EXAMPLES for more information.
 .TP 
@@ -179,19 +179,21 @@ Print version information and exit.
 .TP 
 \fB\-h\fR
 Print help and exit.  This is the default when there are no arguments.
-.SH "PARTIAL POSTING"
+.SH "PARTIAL AND FAKE POSTING"
 Parts of files may be posted by specifying filenames in the following
-format: 'filename:partnumbers'.  Partnumbers is a comma\-separated list of
+format: 'filename:partnumbers'.  Colons in the first or second position 
+(as after a drive letter) are ignored.  Partnumbers is a comma\-separated list of
 parts to post.  Each item in the list may be any of three formats: '2' (a
 single part), '2\-5' (parts 2, 3, 4, and 5), or '2+' (part 2 and all parts
 up to and including the last part).  If, for example, you want to post
 parts 2, 4, 5, 6, 10, 11, and 12 of track01.mp3 (a 12 part file), you
 could specify the filename like this: 'track01.mp3:2,4\-6,10+'.  If there
-is no ':' in a specified filename, newspost will post the entire file.  
-Colons in the first or second position (as after a drive letter) are
-ignored for this purpose.  Please note:  This is NOT RECOMMENDED.  Your
-file is more likely to post properly if you repost the entire file, or
-split the file into smaller parts and post them.
+is no ':' in a specified filename, newspost will post the entire file. If
+the number 0 is specified after the colon, newspost will add the file to generated .SFV
+and .PAR files, and preserve ' \- File x of y: ' numbering, but not
+actually post the file.  See EXAMPLES for more information.  Please note:  If your files
+did not post completely, your file is much more likely to post properly if you repost 
+the entire file, or split the file into smaller parts and post them.
 .SH "SPEED INDICATOR"
 While posting, Newspost shows the approximate upload speed in bytes per 
 second.  This is measured by the total number of \fIencoded\fP bytes sent 
@@ -242,7 +244,7 @@ newspost \-d \-i news.myisp.com \-f newspost@unixcab.org \-F 'Jim Faulkner'
 .br 
 newspost \-n alt.binaries.test \-s 'Here are some songs' /nfs/music/*.mp3
 .TP 
-\fBA subject line from this post may look like this:\fP
+\fBA subject line from the above post may look like this:\fP
 .br 
 Here are some songs \- track01.mp3 (01/15)
 .TP 
@@ -251,7 +253,7 @@ Here are some songs \- track01.mp3 (01/15)
 newspost \-y \-n alt.binaries.test.yenc \-s 'Here are some more songs'
 /nfs/music/*.mp3
 .TP 
-\fBA subject line from this post may look like this:\fP
+\fBA subject line from the above post may look like this:\fP
 .br 
 Here are some more songs \- "track01.mp3" yEnc (01/12)
 .TP 
@@ -260,7 +262,7 @@ Here are some more songs \- "track01.mp3" yEnc (01/12)
 newspost \-q \-y \-n alt.binaries.test.yenc \-s 'Here are some more songs'
 track01.mp3 track02.mp3 track03.mp3
 .TP 
-\fBA subject line from this post may look like this:\fP
+\fBA subject line from the above post may look like this:\fP
 .br 
 Here are some more songs \- File 1 of 3: "track01.mp3" yEnc (01/12)
 .TP 
@@ -295,7 +297,7 @@ newspost \-d \-B 7
 newspost \-q \-a parfile.par \-A 3 \-n alt.binaries.test \-s 'Here are
 some songs' /nfs/music/*.mp3
 .TP 
-\fBA subject line from this post may look like this:\fP
+\fBA subject line from the above post may look like this:\fP
 .br 
 Here are some songs \- PAR File 1 of 4: parfile.par (1/1)
 .TP 
@@ -307,6 +309,18 @@ newspost \-n alt.binaries.test \-s 'Here are some songs' track01.mp3:3\-5
 .br 
 newspost \-n alt.binaries.test \-s 'Here are some songs' track01.mp3
 track02.mp3:11+ track03.mp3:1,3,6\-8
+.TP 
+\fBResume a broken post at Track02.mp3 preserving -q numbering:\fP
+.br 
+newspost \-q \-s '2 songs' Track01.mp3:0 Track02.mp3
+.TP 
+\fBA subject line from the above post may look like this:\fP
+.br 
+2 songs \- File 2 of 2: Track02.mp3 (1/8)
+.TP 
+\fBPost an .SFV file and Track02.mp3, but include Track01.mp3 in the .SFV file:\fP
+.br 
+newspost \-c songs.SFV \-s '2 songs' Track01.mp3:0 Track01.mp3
 .ad
 .SH "AUTHORS"
 .LP 
