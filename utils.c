@@ -1,6 +1,6 @@
-/* Newspost 1.13
+/* Newspost 1.20
 
-   Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
+   Copyright (C) 2000 Jim Faulkner <newspost@unixcab.org>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,99 +18,100 @@
 
 #include "newspost.h"
 
-void strippath(char *filename,char *stripped);
-
-struct filell *checkfiles(struct filell *firstfile);
-
-struct filell *addfile(const char *myfile, struct filell *first);
-
-struct filell *freefilell(struct filell *first,struct filell *tofree);
-
-void strippath(char *filename,char *stripped){
+const char *strippath(const char *filename) {
   bool check = FALSE;
-  char *ptr = filename;
-  char *lastslash = filename;
-  while(strcmp(ptr,"")!=0){
-    if(strncmp(ptr,"/",1)==0){ 
-      lastslash = ptr; 
+  const char *ptr = filename;
+  const char *lastslash = filename;
+
+  while ('\0' != *ptr) {
+    if ('/' == *ptr) { 
+      lastslash = ptr;
       check = TRUE;
     }
     ptr++;
   }
-  if(check == TRUE) lastslash++;
-  strcpy(stripped,lastslash);
+  if (check == TRUE) lastslash++;
+
+  return lastslash;
 }
 
-struct filell *checkfiles(struct filell *firstfile){
+struct filell *checkfiles(struct filell *firstfile) {
   FILE *thisfile;
   struct filell *loc = firstfile;
   struct filell *oldloc = NULL;
-  while(loc != NULL){
-    if(stat(loc->filename,&loc->fileinfo) == -1){
-      printf("Could not stat %s: %s\n",loc->filename,strerror(errno));
+
+  while (loc != NULL) {
+    if (stat(loc->filename, &loc->fileinfo) == -1) {
+      printf("Could not stat %s: %s\n", loc->filename, strerror(errno));
       oldloc = loc->next;
-      firstfile = freefilell(firstfile,loc);
+      firstfile = freefilell(firstfile, loc);
       loc = oldloc;
     }
-    else{
-      if(S_ISDIR(loc->fileinfo.st_mode)){
-        printf("%s is a directory.\n",loc->filename);
+    else {
+      if (S_ISDIR(loc->fileinfo.st_mode)) {
+        printf("%s is a directory.\n", loc->filename);
         oldloc = loc->next;
-        firstfile = freefilell(firstfile,loc);
+        firstfile = freefilell(firstfile, loc);
         loc = oldloc;
       }
-      else{
-        thisfile = fopen(loc->filename,"r");
-        if(thisfile == NULL){
-          printf("Could not open %s: %s\n",loc->filename,strerror(errno));
+      else {
+        thisfile = fopen(loc->filename, "rb");
+        if (thisfile == NULL) {
+          printf("Could not open %s: %s\n", loc->filename, strerror(errno));
           oldloc = loc->next;
-          firstfile = freefilell(firstfile,loc);
+          firstfile = freefilell(firstfile, loc);
           loc = oldloc;
         }
-        else{ 
+        else { 
           fclose(thisfile);
           loc = loc->next;
         }
       }
     }
   }
+
   return firstfile;
 }
 
 /* returns a pointer to the first in the list */
-struct filell *addfile(const char *myfile, struct filell *first){
+struct filell *addfile(const char *myfile, struct filell *first) {
   struct filell *wherami;
-  if(first==NULL){
+
+  if (first == NULL) {
     first = malloc(sizeof(struct filell));
     wherami = first;
   }
-  else{
+  else {
     wherami = first;
-    while(wherami->next != NULL){
+    while (wherami->next != NULL)
       wherami = wherami->next;
-    }
+
     wherami->next = malloc(sizeof(struct filell));
     wherami = wherami->next;
   }
-  strcpy(wherami->filename,myfile);
+  strcpy(wherami->filename, myfile);
+  wherami->crc = 0xffffffffL;
   wherami->next = NULL;
+
   return first;
 }
 
-struct filell *freefilell(struct filell *first,struct filell *tofree){
+struct filell *freefilell(struct filell *first, struct filell *tofree) {
   struct filell *loc = first;
   struct filell *oldloc = loc;
-  if(first==tofree){
+
+  if (first == tofree) {
     first = loc->next;
     free(oldloc);
   }
-  else{
-    while(loc != tofree){
+  else {
+    while (loc != tofree) {
       oldloc = loc;
       loc = loc->next;
     }
     oldloc->next = loc->next;
     free(loc);
   }
+
   return first;
 }

@@ -1,5 +1,5 @@
-Newspost 1.13
-http://www.ccs.neu.edu/home/jfaulkne/newspost/
+Newspost 1.20
+http://newspost.unixcab.org/
 
 INSTALLATION
 
@@ -44,5 +44,5 @@ Feedback is welcome, but patches are more welcome, as well as
 makefiles for different OSes.  Please report any bugs you find.
 
 Jim Faulkner
-jfaulkne@ccs.neu.edu
+newspost@unixcab.org
 
