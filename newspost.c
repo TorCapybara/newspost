@@ -406,7 +406,7 @@ void printhelp(struct headerinfo *header,
   printf("  -t      - post as text (no uuencoding). only one file may be posted.\n");
   printf("Examples:\n");
   printf("  $ newspost -f you@yourbox.yourdomain -o \"Your Organization\" -i news.yourisp.com -n alt.binaries.sounds.mp3 -d\n");
-  printf("  $ newspost -s \"This is me singing\" -0 musicinfo.txt -n *.mp3 -v mysongs.sfv\n");
+  printf("  $ newspost -s \"This is me singing\" -0 musicinfo.txt *.mp3 -v mysongs.sfv\n");
   printf("  $ newspost -s \"Some pics of my kitty\" -n alt.binaries.pets.cats kitty1.jpg kitty2.jpg kitty3.jpg\n");
   exit(0);
 }

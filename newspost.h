@@ -63,7 +63,7 @@
 #define debug2 printf
 #endif
 
-#define NVERSION "1.01"
+#define NVERSION "1.01a"
 
 struct postsocket{
   time_t last_action_time;
