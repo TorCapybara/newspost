@@ -1,4 +1,4 @@
-/* Newspost 1.0
+/* Newspost 1.1
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -19,12 +19,14 @@
 #include "newspost.h"
 
 void postfile(struct headerinfo *header,const char *filename,
-	      struct postsocket *sock,bool istext);
+	      struct postsocket *sock, int check, char *stripped);
 
 bool nntpauth(struct postsocket *sock, char *username,char *password);
 
+extern char *reference;
+
 void postfile(struct headerinfo *header,const char *filename,
-	      struct postsocket *sock,bool istext){
+	      struct postsocket *sock, int check, char *stripped){
   char thisline[1024];
   FILE *tobeposted;
 
@@ -40,8 +42,17 @@ void postfile(struct headerinfo *header,const char *filename,
   socket_putline(sock,header->subject);
   socket_putline(sock,header->organization);
   socket_putline(sock,header->useragent);
+  if(reference != NULL){
+    socket_putline(sock,reference);
+  }
 
   socket_putline(sock,"\r\n");
+
+  if((check == ISFIRST)
+     || (check == ISBOTH)) {
+    sprintf(thisline,"begin 644 %s\n",stripped);
+    socket_putline(sock,thisline);
+  }
 
   tobeposted = fopen(filename,"r");
   if(tobeposted == NULL){
@@ -53,6 +64,12 @@ void postfile(struct headerinfo *header,const char *filename,
 
   while(fgets(thisline,1024,tobeposted) != NULL){
     sprintf(thisline,"%s",thisline);
+    socket_putline(sock,thisline);
+  }
+
+  if((check == ISLAST)
+     || (check == ISBOTH)) {
+    sprintf(thisline,"end\n");
     socket_putline(sock,thisline);
   }
 

@@ -46,6 +46,8 @@
 #define TRUE 1
 #define FALSE 0
 
+#define BPL 45 /* bytes per line */
+
 #define BUFSIZE 8192
 
 #define debug1 //
@@ -63,7 +65,11 @@
 #define debug2 printf
 #endif
 
-#define NVERSION "1.01a"
+#define ISFIRST 1
+#define ISLAST 2
+#define ISBOTH 3
+
+#define NVERSION "1.1"
 
 struct postsocket{
   time_t last_action_time;

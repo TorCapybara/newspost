@@ -1,16 +1,17 @@
-Newspost 1.0 
+Newspost 1.1 
 http://www.ccs.neu.edu/home/jfaulkne/newspost/
 
 Just type 'make' then 'make install' to install to /usr/local/bin.
+Use 'make -f Makefile.solaris' if you are running that OS.
 
 If you want it installed to a different directory, type
 'make install BINDIR=/yourdir/bin/'.
 
-It only works in linux right now, but support for most unixes
-is intended in future releases.  Though it may appear to compile
-and post on other unixes, it might not work correctly.
-
 type "newspost -h" to see available options.
+
+Newspost has only been tested on linux and solaris, but a
+simple change in the Makefile will make it compile on other
+unixes.  Success/failure stories are welcome.
 
 Jim Faulkner
 jfaulkne@ccs.neu.edu

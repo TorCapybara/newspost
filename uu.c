@@ -1,4 +1,4 @@
-/* Newspost 1.0
+/* Newspost 1.1
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -17,18 +17,8 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 
 #include "newspost.h"
-#include "uulib/uudeview.h"
-
-void BusyCallBack (void *opaque,uuprogress *uuinfo);
 
 int encode_and_post(struct postsocket *sock,const char *filename,struct headerinfo *header,int maxlines,struct filell *zerofile);
-
-int numchunks = 1;
-
-void BusyCallBack (void *opaque,uuprogress *uuinfo){
-  numchunks = uuinfo->numparts;
-  UUSetBusyCallback(&numchunks,NULL,0);
-}
 
 int encode_and_post(struct postsocket *sock,const char *filename,
                     struct headerinfo *header,
@@ -39,8 +29,17 @@ int encode_and_post(struct postsocket *sock,const char *filename,
   FILE *tmpfile = NULL;
   int i=1;
   struct headerinfo tmpheader; 
+  struct stat fileinfo;
+  int numchunks = 1;
 
-  numchunks = 1;
+  stat(filename,&fileinfo);
+
+  if(fileinfo.st_size > (BPL * maxlines)){
+    if((fileinfo.st_size % (BPL * maxlines)) == 0)
+      numchunks = (fileinfo.st_size/(BPL * maxlines));
+    else
+      numchunks = ((fileinfo.st_size/(BPL * maxlines)) + 1);
+  }
 
   tmpheader.from = calloc(1024,sizeof(char));
   tmpheader.newsgroups = calloc(1024,sizeof(char));
@@ -65,37 +64,38 @@ int encode_and_post(struct postsocket *sock,const char *filename,
   }
  
   while((feof(myfile) == 0) && i <= numchunks){
-    if(i==1){
-      UUSetBusyCallback(&numchunks,BusyCallBack,0);
-    }
     sprintf(tmpfilename,"/tmp/newspost.tmp.%s.%d",strippedfilename,i);
+  
     tmpfile = fopen(tmpfilename,"w");
     if(tmpfile == NULL){
       printf("Error creating temporary file %s: \n%s\n",tmpfilename,strerror(errno));
       exit(0);
     }
     /* encode the chunk */
-    UUEncodePartial(tmpfile,myfile,NULL,UU_ENCODED,
-                    strippedfilename,NULL,NULL,i,maxlines);
+    if (i == numchunks) encode(myfile,tmpfile,maxlines,TRUE);
+    else encode(myfile,tmpfile,maxlines,FALSE);
+
     fclose(tmpfile);
     /* post text prefix if there is one */
     if( (zerofile != NULL)
         && (i == 1)){
       sprintf(tmpheader.subject,"%s - %s (0/%d)\r\n",header->subject,strippedfilename,numchunks);
-      postfile(&tmpheader,zerofile->filename,sock,TRUE);
+      postfile(&tmpheader,zerofile->filename,sock,NULL,NULL);
       printf("Posted %s as text\n",zerofile->filename);
     }
     sprintf(tmpheader.subject,"%s - %s (%d/%d)\r\n",header->subject,strippedfilename,i,numchunks);
     /* post it! */
-    if(i==1) postfile(&tmpheader,tmpfilename,sock,FALSE);
-    else postfile(&tmpheader,tmpfilename,sock,TRUE);
+    if((i==1) && (i != numchunks)) postfile(&tmpheader,tmpfilename,sock,ISFIRST,strippedfilename);
+    else if (i==1) postfile(&tmpheader,tmpfilename,sock,ISBOTH,strippedfilename);
+    else if (i==numchunks) postfile(&tmpheader,tmpfilename,sock,ISLAST,NULL);
+    else postfile(&tmpheader,tmpfilename,sock,NULL,NULL);
     printf("%1s","#");
     fflush(stdout);
     unlink(tmpfilename);
     i++;
   }
   printf("\n");
-  fclose(myfile);
+  fclose(myfile); 
   free(tmpheader.from);
   free(tmpheader.newsgroups);
   free(tmpheader.subject);

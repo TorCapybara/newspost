@@ -1,5 +1,5 @@
 
-/* Newspost 1.0
+/* Newspost 1.1
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 
@@ -18,7 +18,6 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 
 #include "newspost.h"
-#include "uulib/uudeview.h"
 
 struct filell *parseargs(int argc, char **argv, 
                struct headerinfo *header, 
@@ -50,6 +49,8 @@ extern struct filell *checkfiles(struct filell *firstfile);
 extern struct filell *addfile(const char *myfile, struct filell *first);
 
 extern struct filell *freefilell(struct filell *first,struct filell *tofree);
+
+char *reference = NULL;
 
 int main(int argc, char **argv){
   struct postsocket sock;
@@ -155,6 +156,7 @@ int main(int argc, char **argv){
   printf("%s",header.newsgroups);
   printf("%s\n",header.subject);
   printf("%s",header.organization);
+  if(reference != NULL) printf("%s",reference);
   printf("\n");
   if(istext != TRUE){
     if(totalsize < (1024*1024))
@@ -189,13 +191,12 @@ int main(int argc, char **argv){
 
   if(istext == TRUE){
     printf("Posting %s as text.\n",firstfile->filename);
-    postfile(&header,firstfile->filename,&sock,TRUE);
+    postfile(&header,firstfile->filename,&sock,NULL,NULL);
     printf("\n");
     printf("Posted %s\n",firstfile->filename);
   }
   else{
     totalsize = 0;
-    UUInitialize();
     oldfirstfile = firstfile;
     while(firstfile != NULL){
       begintime = time(0);
@@ -227,13 +228,15 @@ int main(int argc, char **argv){
       printf("Posted %d files.\nTotal %.0f bytes in %.0f minutes (%.0f KB/second)\n",numfiles,totalsize,(totaltime/60),((totalsize/totaltime)/1024));
     else
       printf("Posted %d files.\nTotal %.0f bytes in 0 minutes (really quickly)\n",numfiles,totalsize);
-    UUCleanUp();
   }
   /* This stuff has yet to be free()'d */
   /* but hey, we're exiting anyway */
   /*
   while(oldfirstfile != NULL){
     oldfirstfile = freefilell(oldfirstfile,oldfirstfile);
+  }
+  if(reference != NULL){
+    free(reference);
   }
   free(password);
   free(address);
@@ -306,6 +309,13 @@ struct filell *parseargs(int argc, char **argv,
       if((i+1)==argc) needarg("-p");
       i++;
       strcpy(password,argv[i]);
+    }
+    else if(strcmp(argv[i],"-r")==0){
+      /* get the referenced message id */
+      if((i+1)==argc) needarg("-r");
+      reference = calloc(1024,sizeof(char));
+      i++;
+      sprintf(reference,"Reference: %s\r\n",argv[i]);
     }
     else if(strcmp(argv[i],"-i")==0){
       /* get the server name or ip address */
@@ -404,6 +414,7 @@ void printhelp(struct headerinfo *header,
   printf("  -v NAME - create and post as a sfv checksum file.\n");
   printf("  -d      - set current options as your default.\n");
   printf("  -t      - post as text (no uuencoding). only one file may be posted.\n");
+  printf("  -r MGID - reply to MESSAGE_ID\n");
   printf("Examples:\n");
   printf("  $ newspost -f you@yourbox.yourdomain -o \"Your Organization\" -i news.yourisp.com -n alt.binaries.sounds.mp3 -d\n");
   printf("  $ newspost -s \"This is me singing\" -0 musicinfo.txt *.mp3 -v mysongs.sfv\n");

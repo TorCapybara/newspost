@@ -1,4 +1,4 @@
-/* Newspost 1.0
+/* Newspost 1.1
 
    Copyright (C) 2000 Jim Faulkner <jfaulkne@ccs.neu.edu>
 

@@ -2,6 +2,12 @@ Newspost
 
 List of Changes
 
+1.1
+ - no longer uses uulib
+ - added a makefile for solaris
+ - now can reply to messages using -r
+ - misc bugfixes
+
 1.01a
  - fixed typo in newspost -h
 
