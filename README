@@ -1,0 +1,17 @@
+Newspost 1.0 
+http://www.ccs.neu.edu/home/jfaulkne/newspost/
+
+Just type 'make' then 'make install' to install to /usr/local/bin.
+
+If you want it installed to a different directory, type
+'make install BINDIR=/yourdir/bin/'.
+
+It only works in linux right now, but support for most unixes
+is intended in future releases.  Though it may appear to compile
+and post on other unixes, it might not work correctly.
+
+type "newspost -h" to see available options.
+
+Jim Faulkner
+jfaulkne@ccs.neu.edu
+
