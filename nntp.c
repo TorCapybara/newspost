@@ -41,7 +41,7 @@ void postfile(struct headerinfo *header,const char *filename,
   socket_putline(sock,header->organization);
   socket_putline(sock,header->useragent);
 
-  if(istext == TRUE) socket_putline(sock,"\r\n");
+  socket_putline(sock,"\r\n");
 
   tobeposted = fopen(filename,"r");
   if(tobeposted == NULL){
@@ -56,7 +56,7 @@ void postfile(struct headerinfo *header,const char *filename,
     socket_putline(sock,thisline);
   }
 
-  socket_putstring(sock,".");
+  socket_putline(sock,"\r\n.\r\n");
   socket_getline(sock);
   /* debug1("%s",sock->line_buffer); */
   if(strncmp(sock->line_buffer,"240",3)!=0){
