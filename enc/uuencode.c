@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* uuencode utility.
    Copyright (C) 1994, 1995 Free Software Foundation, Inc.
 
@@ -47,91 +48,85 @@
    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
    SUCH DAMAGE.  */
 
-#include "newspost.h"
+#include "../base/newspost.h"
+#include "../ui/ui.h"
 
 /* Reworked to GNU style by Ian Lance Taylor, ian@airs.com, August 93.  */
-/* Modified for Newspost by Jim Faulkner newspost@unixcab.org */
-/* Modified by William McBrine <wmcbrine@users.sf.net>, May 2002 */
 
-/*=======================================================\
-| uuencode [INPUT] OUTPUT				 |
-| 							 |
-| Encode a file so it can be mailed to a remote system.	 |
-\=======================================================*/
+/* Modified for Newspost by Jim Faulkner <newspost@unixcab.org>
+                            and
+                            William McBrine <wmcbrine@users.sf.net> */
 
-/* The standard uuencoding translation table. */
-const char uu_std[64] =
+const char trans_ptr[64] =
 {
-  '`', '!', '"', '#', '$', '%', '&', '\'',
-  '(', ')', '*', '+', ',', '-', '.', '/',
-  '0', '1', '2', '3', '4', '5', '6', '7',
-  '8', '9', ':', ';', '<', '=', '>', '?',
-  '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
-  'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-  'X', 'Y', 'Z', '[', '\\', ']', '^', '_'
+	'`', '!', '"', '#', '$', '%', '&', '\'',
+	'(', ')', '*', '+', ',', '-', '.', '/',
+	'0', '1', '2', '3', '4', '5', '6', '7',
+	'8', '9', ':', ';', '<', '=', '>', '?',
+	'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+	'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+	'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+	'X', 'Y', 'Z', '[', '\\', ']', '^', '_'
 };
 
 /* ENC is the basic 1 character encoding function to make a char printing.  */
-#define ENC(Char) (uu_std[(Char)])
+#define ENC(Char) (trans_ptr[(Char)])
 
-/*------------------------------------------------.
-| Copy from IN to OUT, encoding as you go along.  |
-`------------------------------------------------*/
+/**
+*** Public Routines
+**/
 
-void
-encode(struct filell *loc, FILE *infile, struct postsocket *sock,
-	int maxlines, bool lastfile, bool makesfv)
+long uu_encode(FILE *infile, char *outbuf, int maxlines)
 {
-  int counter = 0;
-  register int n;
-  register char *p, *ch;
-  char inbuf[80], outbuf[80];
-
-  outbuf[0] = '.';
-
-  while (counter < maxlines)
-    {
-      counter++;
-      n = fread(inbuf, 1, 45, infile);
-
-      if (n == 0)
-	break;
-
-      if (makesfv)
-	crc32(loc, inbuf, n);
-
-      outbuf[1] = ENC(n);
-
-      for (p = inbuf, ch = outbuf + 2; n > 0; n -= 3, p += 3)
-	{
-	  if (n < 3) {
-	    p[2] = '\0';
-	    if (n < 2)
-	      p[1] = '\0';
-	  }
-	  *ch++ = ENC( (*p >> 2) & 077 );
-	  *ch++ = ENC( ((*p << 4) & 060) | ((p[1] >> 4) & 017) );
-	  *ch++ = ENC( ((p[1] << 2) & 074) | ((p[2] >> 6) & 03) );
-	  *ch++ = ENC( p[2] & 077 );
+	int counter = 0;
+	int n;
+	char *p, *ch;
+	char inbuf[80];
+	
+	ch = outbuf;
+	while (counter < maxlines) {
+		counter++;
+		n = fread(inbuf, 1, 45, infile);
+		
+		if (n == 0)
+			break;
+		
+		*ch = ENC(n);
+		if (*ch == '.') { 
+			ch++;
+			*ch++ = '.';
+		}
+		else
+			ch++;
+		
+		for (p = inbuf; n > 0; n -= 3, p += 3) {
+			if (n < 3) {
+				p[2] = '\0';
+				if (n < 2)
+					p[1] = '\0';
+			}
+			
+			*ch++ = ENC( (*p >> 2) & 077 );
+			*ch++ = ENC( ((*p << 4) & 060) | ((p[1] >> 4) & 017) );
+			*ch++ = ENC( ((p[1] << 2) & 074) | ((p[2] >> 6) & 03) );
+			*ch++ = ENC( p[2] & 077 );
+		}
+		*ch++ = '\r';
+		*ch++ = '\n';
 	}
-      *ch++ = '\r';
-      *ch++ = '\n';
-      *ch = '\0';
-
-      socket_putline(sock, outbuf + ('.' != outbuf[1]));
-    }
-
-  if (ferror(infile))
-    {
-      printf("Read error\n");
-      exit(0);
-    }
-
-  if (lastfile == TRUE)
-    {
-      outbuf[0] = ENC('\0');
-      outbuf[1] = '\0';
-      socket_putstring(sock, outbuf);
-    }
+	
+	if (feof(infile) != 0) {
+		*ch++ = ENC('\0');
+		*ch++ = '\r';
+		*ch++ = '\n';
+	}
+	else if (ferror(infile)) {
+		ui_generic_error(errno);
+		return 0;
+	}
+	
+	*ch = '\0';
+	
+	return ch - outbuf;
 }
+

@@ -1,23 +1,25 @@
-Newspost 1.20
+Newspost 2.0
 http://newspost.unixcab.org/
 
 INSTALLATION
 
-Just type 'make' then 'make install' to install to /usr/local/bin.
+Just type 'make' then 'make install' to install to /usr/local.
 If you want it installed to a different directory, type
-'make install BINDIR=/yourdir/bin/'.
+'make install PREFIX=/yourdir'. You can also specify BINDIR and 
+MANDIR separately.
 
-If you are not running Linux, then use 'make -f Makefile.YOUR_OS' 
-if you are running YOUR_OS.  I only have makefiles for linux, solaris
-and OSF (DEC Alpha) right now, but other UNIX variants should only 
-require small changes.
+The generic Makefile should work on most systems.  However, if
+you are running Solaris you should type 'make solaris', and users
+of QNX should type 'make qnx'.  The Makefile uses gcc by default,
+so you should edit the first 2 lines of the Makefile if you are
+using another compiler.
 
-If you want it installed to a different directory, type
-'make install BINDIR=/yourdir/bin/'.
+Also see base/newspost.h for some compile-time options.
 
 USAGE
 
-type "newspost -h" to see available options and a couple examples.
+See the man page for detailed information and examples. 
+For a quick start, type "newspost -h" to see available options.
 
 NOTE
 
@@ -25,7 +27,7 @@ Newspost automatically appends the name of the binary attachment
 you are posting and which part of that file your are posting.
 For example, if you use the commandline
 
-$ newpost -s "This is my favorite album" *.mp3
+$ newspost -s "This is my favorite album" *.mp3
 
 The subject lines posted would be:
 
@@ -38,6 +40,8 @@ etc...
 
 Nothing is appended to the subject line when the -t option is used.
 
+See the EXAMPLES section of the manpage for more information.
+
 FEEDBACK
 
 Feedback is welcome, but patches are more welcome, as well as
@@ -45,4 +49,3 @@ makefiles for different OSes.  Please report any bugs you find.
 
 Jim Faulkner
 newspost@unixcab.org
-

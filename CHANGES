@@ -2,6 +2,18 @@ Newspost
 
 List of Changes
 
+2.0 - Major rewrite
+ - Yencoding support
+ - Support for automatic PAR file generation
+ - Support for posting parts of files
+ - Optionally edit text prefixes and text posts in external editor
+ - User-configurable delay before posting
+ - New header options, including user-specified extra header lines
+ - New file format for defaults, now in .newspostrc
+ - Man page :-)
+ - SFV posted first instead of last
+ - SFV now specified with "-c" instead of "-v"; now "-v" is "verbose"
+
 1.20 - changes by William McBrine
  - .newspost values were sometimes not zero-terminated on rereading,
 resulting in garbled settings; fixed
