@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Author: Jim Faulkner <newspost@unixcab.org>
+ * Author: Jim Faulkner <newspost@sdf.lonestar.org>
  *         and William McBrine <wmcbrine@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify

@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Authors: Jim Faulkner <newspost@unixcab.org>
+ * Authors: Jim Faulkner <newspost@sdf.lonestar.org>
  *          and William McBrine <wmcbrine@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -150,7 +150,6 @@ void ui_post_start(newspost_data *data, SList *file_list, SList *parfiles) {
 		if (stat(data->prefix->data, &statbuf) == 0) {
 			printf("\n1 Text Prefix: %s",
 				byte_print(statbuf.st_size));
-			total_bytes += statbuf.st_size;
 		}
 	}
 

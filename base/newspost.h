@@ -40,8 +40,8 @@ typedef n_uint8                 boolean;
 #include "utils.h"
 
 /* remember to change VERSION and PAR_CLIENT for new version numbers */
-#define VERSION "2.1"
-#define PAR_CLIENT 0xFE020100
+#define VERSION "2.1.1"
+#define PAR_CLIENT 0xFE020101
 
 #define NEWSPOSTURL "http://newspost.unixcab.org/"
 #define NEWSPOSTNAME "Newspost"

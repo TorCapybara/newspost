@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Author: Jim Faulkner <newspost@unixcab.org>
+ * Author: Jim Faulkner <newspost@sdf.lonestar.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,6 +83,7 @@ int nntp_post(const char *subject, newspost_data *data,
 	long i, chunksize;
 	SList * listptr;
 	Buff * buff = NULL;
+	Buff * tmpbuff = NULL;
 
 	nntp_issue_command("POST");
 
@@ -118,7 +119,8 @@ int nntp_post(const char *subject, newspost_data *data,
 		buff = buff_add(buff, "X-No-Archive: yes\r\n");
 	listptr = data->extra_headers;
 	while (listptr != NULL) {
-		buff = buff_add(buff, "%s\r\n", listptr->data);
+		tmpbuff = (Buff *) listptr->data;
+		buff = buff_add(buff, "%s\r\n", tmpbuff->data);
 		listptr = slist_next(listptr);
 	}
 	buff = buff_add(buff,"\r\n");

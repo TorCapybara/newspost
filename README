@@ -1,4 +1,4 @@
-Newspost 2.1
+Newspost 2.1.1
 http://newspost.unixcab.org/
 
 INSTALLATION
@@ -48,4 +48,4 @@ Feedback is welcome, but patches are more welcome, as well as
 makefiles for different OSes.  Please report any bugs you find.
 
 Jim Faulkner
-newspost@unixcab.org
+newspost@sdf.lonestar.org

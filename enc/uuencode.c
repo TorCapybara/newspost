@@ -53,7 +53,7 @@
 
 /* Reworked to GNU style by Ian Lance Taylor, ian@airs.com, August 93.  */
 
-/* Modified for Newspost by Jim Faulkner <newspost@unixcab.org>
+/* Modified for Newspost by Jim Faulkner <newspost@sdf.lonestar.org>
                             and
                             William McBrine <wmcbrine@users.sf.net> */
 

@@ -3,7 +3,7 @@
    
    Copyright (C) 2000 Bryan Call <bc@fodder.org>
 
-   Modified for Newspost by Jim Faulkner <newspost@unixcab.org>
+   Modified for Newspost by Jim Faulkner <newspost@sdf.lonestar.org>
                         and William McBrine <wmcbrine@users.sf.net>
 
    This program is free software; you can redistribute it and/or modify

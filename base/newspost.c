@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Authors: Jim Faulkner <newspost@unixcab.org>
+ * Authors: Jim Faulkner <newspost@sdf.lonestar.org>
  *          and William McBrine <wmcbrine@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -285,6 +285,8 @@ static Buff *make_subject(Buff *subject, newspost_data *data, int filenumber,
 
 	if (data->subject != NULL)
 		subject = buff_create(subject, "%s - ", data->subject->data);
+	else
+		subject = buff_create(subject, "");
 	if (data->filenumber == TRUE){
 		sprintf(numbuf, "%i", number_of_files);
 		numsize = strlen(numbuf);
